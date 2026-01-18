@@ -1,0 +1,461 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>YouTube White UI</title>
+
+<!-- Lucide Icons -->
+<script src="https://unpkg.com/lucide@latest"></script>
+
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; font-family: Arial, sans-serif; }
+body { background: #fff; color: #000; }
+
+/* HEADER */
+header {
+  display: flex;
+  align-items: center;
+  padding: 10px 16px;
+  border-bottom: 1px solid #ddd;
+  position: sticky;
+  top: 0;
+  background: white;
+  z-index: 10;
+}
+
+.menu-btn { cursor: pointer; margin-right: 15px; }
+.logo { font-size: 20px; font-weight: bold; color: red; }
+
+.search-box {
+  flex: 1;
+  display: flex;
+  margin: 0 20px;
+  position: relative;
+}
+
+.search-box input {
+  flex: 1;
+  padding: 8px 12px;
+  border-radius: 20px 0 0 20px;
+  border: 1px solid #ccc;
+}
+
+.search-box button {
+  padding: 8px 14px;
+  border: 1px solid #ccc;
+  border-left: none;
+  background: #f2f2f2;
+  border-radius: 0 20px 20px 0;
+  cursor: pointer;
+  transition: background 0.3s;
+}
+.search-box button:hover { background: #e0e0e0; }
+
+.header-icons { display: flex; gap: 15px; }
+
+/* Suggestions */
+.suggestions {
+  position: absolute;
+  top: 40px;
+  width: 100%;
+  background: white;
+  border: 1px solid #ccc;
+  border-radius: 8px;
+  max-height: 200px;
+  overflow-y: auto;
+  display: none;
+  z-index: 20;
+}
+.suggestions div {
+  padding: 8px 12px;
+  cursor: pointer;
+}
+.suggestions div:hover {
+  background: #f2f2f2;
+}
+
+/* LAYOUT */
+.container { display: flex; }
+
+.sidebar {
+  width: 220px;
+  border-right: 1px solid #ddd;
+  padding: 15px;
+  transition: transform 0.3s ease;
+}
+
+.sidebar a {
+  display: flex;
+  gap: 12px;
+  padding: 10px;
+  border-radius: 8px;
+  color: black;
+  text-decoration: none;
+  transition: background 0.2s;
+}
+.sidebar a:hover { background: #f2f2f2; }
+
+.main { flex: 1; padding: 15px; }
+
+/* GRID + CARD ANIMATION */
+.grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+  gap: 16px;
+}
+
+.card {
+  background: #fff;
+  border-radius: 10px;
+  padding: 10px;
+  box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+  opacity: 0;
+  transform: scale(0.95);
+  animation: fadeIn 0.5s forwards;
+  transition: transform 0.3s;
+}
+.card:hover { transform: translateY(-6px); }
+
+.thumbnail {
+  height: 150px;
+  background: #e0e0e0;
+  border-radius: 8px;
+  margin-bottom: 8px;
+}
+
+/* ANIMATION */
+@keyframes fadeIn {
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+/* RESPONSIVE */
+@media (max-width: 768px) {
+  .sidebar { display: none; }
+}
+
+/* PLAYER OVERLAY */
+#videoOverlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.9);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 9999;
+}
+
+/* VIDEO */
+#videoOverlay video {
+  width: 90%;
+  max-width: 1200px;
+  height: auto;
+  border-radius: 10px;
+  box-shadow: 0 6px 20px rgba(0,0,0,0.5);
+}
+
+/* CONTROLS */
+.player-controls {
+  position: absolute;
+  bottom: 30px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  gap: 20px;
+  align-items: center;
+  z-index: 10000;
+}
+
+.player-controls button {
+  width: 50px;
+  height: 50px;
+  border: none;
+  border-radius: 50%;
+  background: #fff;
+  cursor: pointer;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  box-shadow: 0 6px 15px rgba(0,0,0,0.25);
+  transition: transform 0.2s, background 0.2s;
+}
+
+.player-controls button:hover {
+  transform: translateY(-3px);
+  background: #f0f0f0;
+}
+
+.now-playing {
+  position: absolute;
+  top: 20px;
+  left: 50%;
+  transform: translateX(-50%);
+  color: #fff;
+  font-size: 16px;
+  font-weight: 500;
+  z-index: 10000;
+  background: rgba(0,0,0,0.5);
+  padding: 8px 14px;
+  border-radius: 20px;
+}
+</style>
+</head>
+
+<body>
+
+<header>
+  <div class="menu-btn" onclick="toggleSidebar()">
+    <i data-lucide="menu"></i>
+  </div>
+  <div class="logo">YouTube</div>
+
+  <div class="search-box">
+    <input type="text" id="searchInput" placeholder="Search video title">
+    <button onclick="searchVideo()"><i data-lucide="search"></i></button>
+
+    <!-- Suggestions -->
+    <div class="suggestions" id="suggestionsBox"></div>
+  </div>
+
+  <div class="header-icons">
+    <i data-lucide="bell"></i>
+    <i data-lucide="user-circle"></i>
+  </div>
+</header>
+
+<div class="container">
+  <nav class="sidebar" id="sidebar">
+    <a href="#"><i data-lucide="home"></i> Home</a>
+    <a href="#"><i data-lucide="zap"></i> Shorts</a>
+    <a href="#"><i data-lucide="tv"></i> Subscriptions</a>
+    <a href="#"><i data-lucide="library"></i> Library</a>
+  </nav>
+
+  <main class="main">
+    <div class="grid" id="videoGrid"></div>
+  </main>
+</div>
+
+<script>
+/* =========================
+   VIDEO DATA (JSON)
+========================= */
+const videoData = [
+  {
+    "title": "Learn JavaScript in 10 Minutes",
+    "channel": "Code Master",
+    "views": "1.2M views",
+    "videoUrl": "https://www.w3schools.com/html/mov_bbb.mp4"
+  },
+  {
+    "title": "HTML CSS Full Course",
+    "channel": "Web Dev",
+    "views": "850K views",
+    "videoUrl": "https://www.w3schools.com/html/movie.mp4"
+  },
+  {
+    "title": "Build YouTube UI",
+    "channel": "Frontend King",
+    "views": "430K views",
+    "videoUrl": "https://www.w3schools.com/html/mov_bbb.mp4"
+  },
+  {
+    "title": "Best Song 2024",
+    "channel": "Music Star",
+    "views": "2M views",
+    "videoUrl": "https://www.w3schools.com/html/mov_bbb.mp4"
+  },
+  {
+    "title": "Top 10 Bollywood Songs",
+    "channel": "Bollywood Hits",
+    "views": "1.1M views",
+    "videoUrl": "https://www.w3schools.com/html/movie.mp4"
+  }
+];
+
+/* =========================
+   DOM ELEMENTS
+========================= */
+const grid = document.getElementById("videoGrid");
+const searchInput = document.getElementById("searchInput");
+const suggestionsBox = document.getElementById("suggestionsBox");
+
+let currentIndex = 0;
+
+/* =========================
+   RENDER VIDEOS
+========================= */
+function renderVideos(data) {
+  grid.innerHTML = "";
+  data.forEach((video, index) => {
+    const card = document.createElement("div");
+    card.className = "card";
+    card.style.animationDelay = `${index * 0.1}s`;
+
+    card.innerHTML = `
+      <div class="thumbnail"></div>
+      <p><b>${video.title}</b></p>
+      <small>${video.channel} • ${video.views}</small>
+    `;
+
+    // On click play video fullscreen
+    card.onclick = () => openPlayer(index);
+
+    grid.appendChild(card);
+  });
+}
+
+/* =========================
+   SEARCH FUNCTION
+========================= */
+function searchVideo() {
+  const query = searchInput.value.toLowerCase();
+  const filtered = videoData.filter(v => v.title.toLowerCase().includes(query));
+  renderVideos(filtered);
+  suggestionsBox.style.display = "none";
+}
+
+/* =========================
+   SUGGESTIONS
+========================= */
+searchInput.addEventListener("input", () => {
+  const query = searchInput.value.toLowerCase();
+  const filtered = videoData.filter(v => v.title.toLowerCase().includes(query));
+
+  suggestionsBox.innerHTML = "";
+  if (query.trim() !== "" && filtered.length > 0) {
+    suggestionsBox.style.display = "block";
+    filtered.slice(0, 5).forEach(v => {
+      const div = document.createElement("div");
+      div.innerText = v.title;
+      div.onclick = () => {
+        searchInput.value = v.title;
+        searchVideo();
+      };
+      suggestionsBox.appendChild(div);
+    });
+  } else {
+    suggestionsBox.style.display = "none";
+  }
+});
+
+// Hide suggestions on outside click
+document.addEventListener("click", (e) => {
+  if (!e.target.closest(".search-box")) {
+    suggestionsBox.style.display = "none";
+  }
+});
+
+/* =========================
+   FULLSCREEN PLAYER
+========================= */
+function openPlayer(index) {
+  currentIndex = index;
+
+  // Create overlay
+  const overlay = document.createElement("div");
+  overlay.id = "videoOverlay";
+
+  // Video element
+  const video = document.createElement("video");
+  video.src = videoData[index].videoUrl;
+  video.controls = true;
+  video.autoplay = true;
+
+  // Now playing text
+  const nowPlaying = document.createElement("div");
+  nowPlaying.className = "now-playing";
+  nowPlaying.innerText = videoData[index].title;
+
+  // Controls buttons
+  const controls = document.createElement("div");
+  controls.className = "player-controls";
+
+  const prevBtn = document.createElement("button");
+  prevBtn.innerHTML = '<i data-lucide="skip-back"></i>';
+  prevBtn.onclick = () => changeVideo(-1);
+
+  const nextBtn = document.createElement("button");
+  nextBtn.innerHTML = '<i data-lucide="skip-forward"></i>';
+  nextBtn.onclick = () => changeVideo(1);
+
+  controls.appendChild(prevBtn);
+  controls.appendChild(nextBtn);
+
+  overlay.appendChild(video);
+  overlay.appendChild(nowPlaying);
+  overlay.appendChild(controls);
+  document.body.appendChild(overlay);
+
+  lucide.createIcons(); // render icons
+
+  // Close on click outside video
+  overlay.addEventListener("click", (e) => {
+    if (e.target === overlay) closePlayer();
+  });
+
+  // ESC to close
+  document.addEventListener("keydown", escClose);
+
+  // Fullscreen on double click
+  video.addEventListener("dblclick", () => {
+    if (document.fullscreenElement) {
+      document.exitFullscreen();
+    } else {
+      video.requestFullscreen();
+    }
+  });
+
+  // Auto next when video ends
+  video.addEventListener("ended", () => {
+    changeVideo(1);
+  });
+}
+
+/* =========================
+   CHANGE VIDEO (Next / Prev)
+========================= */
+function changeVideo(direction) {
+  currentIndex += direction;
+
+  if (currentIndex < 0) currentIndex = videoData.length - 1;
+  if (currentIndex >= videoData.length) currentIndex = 0;
+
+  const video = document.querySelector("#videoOverlay video");
+  const nowPlaying = document.querySelector("#videoOverlay .now-playing");
+
+  video.src = videoData[currentIndex].videoUrl;
+  nowPlaying.innerText = videoData[currentIndex].title;
+  video.play();
+}
+
+function closePlayer() {
+  const overlay = document.getElementById("videoOverlay");
+  if (overlay) overlay.remove();
+  document.removeEventListener("keydown", escClose);
+}
+
+function escClose(e) {
+  if (e.key === "Escape") closePlayer();
+}
+
+/* =========================
+   INITIAL LOAD
+========================= */
+renderVideos(videoData);
+</script>
+
+<script>
+  lucide.createIcons();
+  function toggleSidebar() {
+    const s = document.getElementById("sidebar");
+    s.style.display = s.style.display === "none" ? "block" : "none";
+  }
+</script>
+
+</body>
+</html>
+  
