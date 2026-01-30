@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Multi Camera Viewer</title>
+
+<style>
+*{margin:0;padding:0;box-sizing:border-box;font-family:Arial}
+body,html{width:100%;height:100%;background:#000;color:#0f0}
+
+/* HEADER */
+#header{
+    position:fixed;
+    top:0;left:0;
+    width:100%;height:50px;
+    background:#000;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    border-bottom:1px solid #222;
+    z-index:10;
+}
+#header span{font-size:18px;font-weight:bold}
+
+/* SETTINGS */
+#settings{
+    position:fixed;
+    top:50px;
+    width:100%;
+    background:#050505;
+    padding:8px;
+    display:flex;
+    gap:6px;
+    z-index:10;
+}
+#settings input{
+    flex:1;
+    padding:6px;
+    background:#111;
+    border:1px solid #333;
+    color:#0f0;
+}
+#settings button{
+    padding:6px 10px;
+    background:#0f0;
+    border:none;
+    cursor:pointer;
+    font-weight:bold;
+}
+
+/* VIEW */
+#container{
+    padding-top:110px;
+    width:100%;
+    height:100%;
+}
+
+/* SINGLE */
+.single img{
+    width:100%;
+    height:calc(100vh - 110px);
+    object-fit:contain;
+}
+
+/* GRID */
+.grid{
+    display:grid;
+    grid-template-columns:repeat(2,1fr);
+    gap:5px;
+    padding:5px;
+}
+.grid img{
+    width:100%;
+    height:45vh;
+    object-fit:cover;
+    background:#000;
+    border:1px solid #222;
+}
+
+#nosignal{
+    position:absolute;
+    top:50%;
+    left:50%;
+    transform:translate(-50%,-50%);
+    color:red;
+    font-size:24px;
+    display:none;
+}
+</style>
+</head>
+
+<body>
+
+<div id="header">
+    <span id="camTitle">CAM 1</span>
+</div>
+
+<div id="settings">
+    <input id="ip1" placeholder="Camera 1 IP (http://x.x.x.x:8080/video)">
+    <input id="ip2" placeholder="Camera 2 IP">
+    <input id="ip3" placeholder="Camera 3 IP">
+    <button onclick="startCameras()">START</button>
+</div>
+
+<div id="container" class="single">
+    <img id="mainCam">
+    <div id="nosignal">NO SIGNAL</div>
+</div>
+
+<script>
+let cameras=[];
+let currentCam=0;
+let gridMode=false;
+
+const mainCam=document.getElementById("mainCam");
+const container=document.getElementById("container");
+const title=document.getElementById("camTitle");
+const nosignal=document.getElementById("nosignal");
+
+function startCameras(){
+    cameras=[
+        document.getElementById("ip1").value,
+        document.getElementById("ip2").value,
+        document.getElementById("ip3").value
+    ].filter(ip=>ip.trim()!=="");
+
+    loadSingle(0);
+}
+
+function loadSingle(index){
+    gridMode=false;
+    container.className="single";
+    container.innerHTML='<img id="mainCam"><div id="nosignal">NO SIGNAL</div>';
+    currentCam=index;
+    title.innerText="CAM "+(index+1);
+
+    const img=document.getElementById("mainCam");
+    img.src=cameras[index]+"?t="+Date.now();
+    img.onerror=()=>nosignal.style.display="block";
+}
+
+function loadGrid(){
+    gridMode=true;
+    title.innerText="ALL CAMERAS";
+    container.className="grid";
+    container.innerHTML="";
+
+    cameras.forEach(ip=>{
+        const img=document.createElement("img");
+        img.src=ip+"?t="+Date.now();
+        container.appendChild(img);
+    });
+}
+
+/* KEY CONTROL */
+document.addEventListener("keydown",e=>{
+    if(!gridMode){
+        if(e.key==="1") loadSingle(0);
+        if(e.key==="2") loadSingle(1);
+        if(e.key==="3") loadSingle(2);
+    }
+});
+
+let x=false,w=false;
+document.addEventListener("keydown",e=>{
+    if(e.key.toLowerCase()==="x") x=true;
+    if(e.key.toLowerCase()==="w") w=true;
+    if(x && w && cameras.length>0) loadGrid();
+});
+document.addEventListener("keyup",e=>{
+    if(e.key.toLowerCase()==="x") x=false;
+    if(e.key.toLowerCase()==="w") w=false;
+});
+</script>
+
+</body>
+</html>
